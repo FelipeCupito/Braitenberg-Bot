@@ -6,7 +6,8 @@
 class MotorController {
   public:
     MotorController(Motor& leftMotor, Motor& rightMotor, float leftMotorCalibration = 1.0, float rightMotorCalibration = 1.0);
-    void setup();
+    // Configuration
+    void setup(int maxVelocity, int minVelocity);
     void setCalibration(float leftCal, float rightCal);
 
     // Movement
@@ -16,6 +17,8 @@ class MotorController {
     void dynamicTurn(int leftSpeed, int rightSpeed);
     void spinInPlaceRight(int speed);
     void spinInPlaceLeft(int speed);
+    void turnRightWithObstacleDistance(int distance, int minDistance, int maxDistance);
+    void turnLeftWithObstacleDistance(int distance, int minDistance, int maxDistance);
 
 
   private:
@@ -23,6 +26,10 @@ class MotorController {
     Motor& rightMotor;
     float leftMotorCalibration;
     float rightMotorCalibration;
+    int maxVelocity;
+    int minVelocity;
+
+    int checkSpeed(int speed);
 };
 
 #endif

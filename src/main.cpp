@@ -167,32 +167,33 @@
 
 /******************************************************* main ********************************************************/
 // Se perdio PWM de los pines 3 y 11 por usar NewPing non-blocking
-// motores
-#define MOTOR_PIN_ENA 6  //Azul
-#define MOTOR_PIN_IN1 7  //Rojo
-#define MOTOR_PIN_IN2 8  //Gris
-#define MOTOR_PIN_IN3 9  //Amarillo
-#define MOTOR_PIN_IN4 10 //Naraja
-#define MOTOR_PIN_ENB 11 //Blanco
+//  Motores
+#define MOTOR_PIN_ENA 6  // Azul
+#define MOTOR_PIN_IN1 7  // Rojo
+#define MOTOR_PIN_IN2 8  // Gris
+#define MOTOR_PIN_IN3 9  // Amarillo
+#define MOTOR_PIN_IN4 10 // Naraja
+#define MOTOR_PIN_ENB 11 // Blanco
 
+// Calibración de motores
 #define MOTOR_CALIBRATION_LEFT 1.0
 #define MOTOR_CALIBRATION_RIGHT 1.0
 
-// ultrasonico
-#define ULTRA_SENSOR_RIGHT A0  //amarillo
-#define ULTRA_SENSOR_LEFT A1   //maron 
+// Ultrasonico
+#define ULTRA_SENSOR_RIGHT A0  // Amarillo
+#define ULTRA_SENSOR_LEFT A1   // Marrón 
 #define MAX_DISTANCE 100
 #define MIN_DISTANCE 0 
 
-// Constantes de distancia
-#define CRITICAL_DISTANCE 20   // Si la distancia es menor
-#define AVOID_DISTANCE 40      // Si la distancia está entre CRITICAL y AVOID, gira
+// Distancia
+#define CRITICAL_DISTANCE 20
+#define AVOID_DISTANCE 40     
 
 // Velocidades
-#define SPIN_SPEED 100         // Velocidad para girar sobre sí mismo
-#define BACKWARD_SPEED 100     // Velocidad al retroceder
-#define MAX_VELOCITY 200       // Velocidad máxima
-#define MIN_VELOCITY 50       // Velocidad mínima para giros
+#define SPIN_SPEED 100      // Velocidad para girar sobre sí mismo
+#define BACKWARD_SPEED 100  // Velocidad al retroceder
+#define MAX_VELOCITY 200    // Velocidad máxima
+#define MIN_VELOCITY 50     // Velocidad mínima para giros
 
 
 Motor motorLeft(MOTOR_PIN_ENA, MOTOR_PIN_IN1, MOTOR_PIN_IN2, Motor::INVERTED);
@@ -203,7 +204,7 @@ Sonar sonar(ULTRA_SENSOR_RIGHT, ULTRA_SENSOR_LEFT, MAX_DISTANCE);
 
 void setup() {
   Serial.begin(9600);
-  motorController.setup();
+  motorController.setup(MAX_VELOCITY, MIN_VELOCITY);
   sonar.setup();
 }
 
@@ -212,7 +213,6 @@ void loop() {
   
   int distance = sonar.getDistance();
   if (distance > 0 && distance <= CRITICAL_DISTANCE) {
-    // Obstáculo muy cerca, gira sobre sí mismo
     Serial.println("Obstáculo muy cerca, girando");
     if(Sonar::CloserSide::RIGHT == sonar.getCloserSide()){
       motorController.spinInPlaceRight(SPIN_SPEED);
@@ -221,24 +221,32 @@ void loop() {
     }
   } 
   else if (distance > CRITICAL_DISTANCE && distance <= AVOID_DISTANCE) {
-    // Obstáculo cerca, intenatr evitarlo
     Serial.println("Obstáculo detectado, evitando");
     if(Sonar::CloserSide::RIGHT == sonar.getCloserSide()){
-      //TODO: si funciona bien esto pasar a una funcion del motorController
-      int leftMotorVelocity = constrain(map(distance, CRITICAL_DISTANCE, AVOID_DISTANCE, MIN_VELOCITY, MAX_VELOCITY), MIN_VELOCITY, MAX_VELOCITY);
-      motorController.dynamicTurn(leftMotorVelocity, MAX_VELOCITY);
+      motorController.turnLeftWithObstacleDistance(distance, CRITICAL_DISTANCE, AVOID_DISTANCE);
+      // int leftMotorVelocity = constrain(map(distance, CRITICAL_DISTANCE, AVOID_DISTANCE, MIN_VELOCITY, MAX_VELOCITY), MIN_VELOCITY, MAX_VELOCITY);
+      // motorController.dynamicTurn(leftMotorVelocity, MAX_VELOCITY);
     } else {
-      int rightMotorVelocity = constrain(map(distance, CRITICAL_DISTANCE, AVOID_DISTANCE, MIN_VELOCITY, MAX_VELOCITY), MIN_VELOCITY, MAX_VELOCITY);
-      motorController.dynamicTurn(MAX_VELOCITY, rightMotorVelocity);
+      motorController.turnRightWithObstacleDistance(distance, CRITICAL_DISTANCE, AVOID_DISTANCE);
+      // int rightMotorVelocity = constrain(map(distance, CRITICAL_DISTANCE, AVOID_DISTANCE, MIN_VELOCITY, MAX_VELOCITY), MIN_VELOCITY, MAX_VELOCITY);
+      // motorController.dynamicTurn(MAX_VELOCITY, rightMotorVelocity);
     }
   } 
   else {
-    // No hay obstáculo, avanza
     Serial.println("No hay obstáculo, avanzando");
     motorController.moveForward(MAX_VELOCITY); 
   }
     
 }
+
+// void loop() {
+//   sonar.update();
+
+//   Serial.print("Right: ");
+//   Serial.print(sonar.getRightDistance());
+//   Serial.print("          Left: ");
+//   Serial.println(sonar.getLeftDistance());
+// }
 
 // Motor motorLeft(MOTOR_PIN_ENA, MOTOR_PIN_IN1, MOTOR_PIN_IN2, Motor::INVERTED);
 // Motor motorRight(MOTOR_PIN_ENB, MOTOR_PIN_IN3, MOTOR_PIN_IN4, Motor::NORMAL);
