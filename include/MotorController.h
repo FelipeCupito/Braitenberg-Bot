@@ -17,7 +17,6 @@ class MotorController {
     MotorController(Motor& leftMotor, Motor& rightMotor);
     // Configuration
     void setup();
-    void setAdjustmentMethod(AdjustmentMethod method);
 
     // Movement
     void moveForward(int speed);
@@ -26,13 +25,11 @@ class MotorController {
     void dynamicTurn(int leftSpeed, int rightSpeed);
     void spinInPlaceRight(int speed);
     void spinInPlaceLeft(int speed);
-    //void turnRightWithObstacleDistance(int distance, int minDistance, int maxDistance);
-    //void turnLeftWithObstacleDistance(int distance, int minDistance, int maxDistance);
-    void adjustSpeedsBasedOnObstacleDistances(int leftDistance, int rightDistance, int minDistance, int maxDistance);
+    void adjustSpeedsToApproach(int leftValue, int rightValue, int minValue, int maxValue, AdjustmentMethod method = LINEAR_DIFFERENCE);
+    void adjustSpeedsToAvoid(int leftValue, int rightValue, int minValue, int maxValue, AdjustmentMethod method= LINEAR_DIFFERENCE);
 
 
   private:
-    AdjustmentMethod adjustmentMethod;
     Motor& leftMotor;
     Motor& rightMotor;
 
@@ -44,6 +41,7 @@ class MotorController {
 
     // Funciones auxiliares
     void safeDirectionChangeFrom(Motor::State fromState);
+    void adjustSpeeds(int leftValue, int rightValue, int minValue, int maxValue, AdjustmentMethod method, bool isApproaching);
 };
 
 #endif

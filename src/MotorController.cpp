@@ -10,10 +10,6 @@ void MotorController::setup() {
   rightMotor.setup();
 }
 
-void MotorController::setAdjustmentMethod(AdjustmentMethod method) {
-    adjustmentMethod = method;
-}
-
 /**********************
  ** Movement methods **
  **********************/ 
@@ -90,18 +86,41 @@ void MotorController::spinInPlaceLeft(int speed) {
   rightMotor.moveForward(speed);
 }
 
-void MotorController::adjustSpeedsBasedOnObstacleDistances(int leftDistance, int rightDistance, int minDistance, int maxDistance) {
+void MotorController::adjustSpeedsToApproach(int leftValue, int rightValue, int minValue, int maxValue, AdjustmentMethod method) {
+  adjustSpeeds(leftValue, rightValue, minValue, maxValue, method, true);
+}
+
+void MotorController::adjustSpeedsToAvoid(int leftValue, int rightValue, int minValue, int maxValue, AdjustmentMethod method) {
+  adjustSpeeds(leftValue, rightValue, minValue, maxValue, method, false);
+}
+
+void MotorController::safeDirectionChangeFrom(Motor::State fromState){
+  bool delayFlag = false;
+  if(leftMotor.getState() == fromState){
+    leftMotor.fullStop();
+    delayFlag = true;
+  }
+  if(rightMotor.getState() == fromState){
+    rightMotor.fullStop();
+    delayFlag = true;
+  }
+  if (delayFlag) {
+    delay(100);
+  }
+}
+
+void MotorController::adjustSpeeds(int leftValue, int rightValue, int minValue, int maxValue, AdjustmentMethod method, bool isApproaching) {
   int leftSpeed = MAX_SPEED;
   int rightSpeed = MAX_SPEED;
 
-  // Cálculo de la diferencia de distancia y normalización
-  int distanceDifference = rightDistance - leftDistance;
-  float normalizedDifference = float(distanceDifference) / float(maxDistance - minDistance);
+  // Calculate difference and normalize
+  int valueDifference = rightValue - leftValue;
+  float normalizedDifference = float(valueDifference) / float(maxValue - minValue);
   normalizedDifference = constrain(normalizedDifference, -1.0, 1.0);
 
-  // Aplicar la función de escalado
+  // Apply scaling function
   float scalingFactor = 0.0;
-  switch (adjustmentMethod) {
+  switch (method) {
     case LINEAR_DIFFERENCE:
       scalingFactor = linearScaling(normalizedDifference);
       break;
@@ -118,53 +137,27 @@ void MotorController::adjustSpeedsBasedOnObstacleDistances(int leftDistance, int
       scalingFactor = linearScaling(normalizedDifference);
       break;
   }
-  
+
   int baseSpeed = (MAX_SPEED + MIN_SPEED) / 2;
   int maxDifferential = (MAX_SPEED - MIN_SPEED) / 2;
   int differentialSpeed = scalingFactor * maxDifferential;
 
-  leftSpeed = baseSpeed - differentialSpeed;
-  rightSpeed = baseSpeed + differentialSpeed;
+  if (isApproaching) {
+    // Move towards the higher value
+    leftSpeed = baseSpeed - differentialSpeed;
+    rightSpeed = baseSpeed + differentialSpeed;
+  } else {
+    // Move away from the higher value
+    leftSpeed = baseSpeed + differentialSpeed;
+    rightSpeed = baseSpeed - differentialSpeed;
+  }
 
-  Serial.print("Left Distance: "); Serial.print(leftDistance);
-  Serial.print(" | Right Distance: "); Serial.print(rightDistance);
-  Serial.print(" | Left Speed: "); Serial.print(leftSpeed);
-  Serial.print(" | Right Speed: "); Serial.println(rightSpeed);
+  // Constrain speeds to valid range
+  leftSpeed = constrain(leftSpeed, MIN_SPEED, MAX_SPEED);
+  rightSpeed = constrain(rightSpeed, MIN_SPEED, MAX_SPEED);
 
   dynamicTurn(leftSpeed, rightSpeed);
 }
-void MotorController::safeDirectionChangeFrom(Motor::State fromState){
-  bool delayFlag = false;
-  if(leftMotor.getState() == fromState){
-    leftMotor.fullStop();
-    delayFlag = true;
-  }
-  if(rightMotor.getState() == fromState){
-    rightMotor.fullStop();
-    delayFlag = true;
-  }
-  if (delayFlag) {
-    delay(100);
-  }
-}
-
-// void MotorController::turnRightWithObstacleDistance(int distance, int minDistance, int maxDistance) {
-//   int rightSpeed = map(distance, minDistance, maxDistance, 0, 100);
-//   int leftSpeed = map(distance, minDistance, maxDistance, 150, 255);
-
-//     // Hacemos el cambio más brusco aplicando una transformación cuadrática
-//   //adjustedVelocity = constrain((baseVelocity - minVelocity) * (baseVelocity - minVelocity) / (maxVelocity - minVelocity) + minVelocity, minVelocity, maxVelocity);
-  
-//   dynamicTurn(leftSpeed, rightSpeed);
-// }
-
-// void MotorController::turnLeftWithObstacleDistance(int distance, int minDistance, int maxDistance) {
-//   // int adjustedVelocity = map(distance, minDistance, maxDistance, minVelocity, maxVelocity);
-//   int rightSpeed = map(distance, minDistance, maxDistance, 150, 255);
-//   int leftSpeed = map(distance, minDistance, maxDistance, 0, 100);
-
-//   dynamicTurn(leftSpeed, rightSpeed);
-// }
 
 /*************************
  **  Ajustment methods  **
