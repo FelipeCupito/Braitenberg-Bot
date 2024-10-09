@@ -1,86 +1,188 @@
 #include "MotorController.h"
 
-MotorController::MotorController(Motor& leftMotor, Motor& rightMotor, float leftMotorCalibration, float rightMotorCalibration)
-  : leftMotor(leftMotor), rightMotor(rightMotor), leftMotorCalibration(leftMotorCalibration), rightMotorCalibration(rightMotorCalibration) {}
+#define MAX_SPEED 255
+#define MIN_SPEED 0
 
-void MotorController::setup(int maxVelocity, int minVelocity) {
-  this->maxVelocity = maxVelocity;
-  this->minVelocity = minVelocity;
+MotorController::MotorController(Motor& leftMotor, Motor& rightMotor): leftMotor(leftMotor), rightMotor(rightMotor) {}
 
+void MotorController::setup() {
   leftMotor.setup();
   rightMotor.setup();
 }
 
-void MotorController::moveForward(int speed) {
-  speed = checkSpeed(speed);
+void MotorController::setAdjustmentMethod(AdjustmentMethod method) {
+    adjustmentMethod = method;
+}
 
-  int leftSpeed = speed * leftMotorCalibration;
-  int rightSpeed = speed * rightMotorCalibration;
-  leftMotor.velocity(leftSpeed);
-  rightMotor.velocity(rightSpeed);
-  leftMotor.direction(Motor::FORWARD);
-  rightMotor.direction(Motor::FORWARD);
+/**********************
+ ** Movement methods **
+ **********************/ 
+
+void MotorController::moveForward(int speed) {
+  // If any motor is moving backwards, stop it before moving forward
+  safeDirectionChangeFrom(Motor::BACKWARD);
+
+  // Now we can safely change the direction to move forward
+  leftMotor.moveForward(speed);
+  rightMotor.moveForward(speed);
 }
 
 void MotorController::moveBackward(int speed) {
-  speed = checkSpeed(speed);
+  // If any motor is moving forward, stop it before moving backward
+  safeDirectionChangeFrom(Motor::FORWARD);
 
-  int leftSpeed = speed * leftMotorCalibration;
-  int rightSpeed = speed * rightMotorCalibration;
-  leftMotor.velocity(leftSpeed);
-  rightMotor.velocity(rightSpeed);
-  leftMotor.direction(Motor::BACKWARD);
-  rightMotor.direction(Motor::BACKWARD);
+  // Now we can safely change the direction to move backward
+  leftMotor.moveBackward(speed);
+  rightMotor.moveBackward(speed);
 }
 
 void MotorController::stop() {
-  leftMotor.direction(Motor::STOP);
-  rightMotor.direction(Motor::STOP);
+  leftMotor.fullStop();
+  rightMotor.fullStop();
 }
 
 void MotorController::dynamicTurn(int leftSpeed, int rightSpeed) {
-  leftSpeed = checkSpeed(leftSpeed);
-  rightSpeed = checkSpeed(rightSpeed);
+  // If any motor is moving backwards, stop it before moving forward
+  safeDirectionChangeFrom(Motor::BACKWARD);
 
-  leftMotor.velocity(leftSpeed * leftMotorCalibration);
-  rightMotor.velocity(rightSpeed * rightMotorCalibration);
-  leftMotor.direction(Motor::FORWARD);
-  rightMotor.direction(Motor::FORWARD);
+  // Now we can safely change the direction to move forward
+  rightMotor.moveForward(rightSpeed);
+  leftMotor.moveForward(leftSpeed);
 }
 
 void MotorController::spinInPlaceRight(int speed) {
-  speed = checkSpeed(speed);
+  // If any motor is moving in the opposite direction, stop it before moving in the correct direction
+  bool delayFlag = false;
+  if(leftMotor.getState() == Motor::BACKWARD){
+    leftMotor.fullStop();
+    delayFlag = true;
+  }
+  if(rightMotor.getState() == Motor::FORWARD){
+    rightMotor.fullStop();
+    delayFlag = true;
+  }
+  if (delayFlag) {
+    delay(100);
+  }
 
-  leftMotor.velocity(speed);
-  rightMotor.velocity(speed);
-  leftMotor.direction(Motor::FORWARD);
-  rightMotor.direction(Motor::BACKWARD);
+  // Move motors in opposite directions to spin in place
+  leftMotor.moveForward(speed);
+  rightMotor.moveBackward(speed);
 }
 
 void MotorController::spinInPlaceLeft(int speed) {
-  speed = checkSpeed(speed);
+  // If any motor is moving in the opposite direction, stop it before moving in the correct direction
+  bool delayFlag = false;
+  if(leftMotor.getState() == Motor::FORWARD){
+    leftMotor.fullStop();
+    delayFlag = true;
+  }
+  if(rightMotor.getState() == Motor::BACKWARD){
+    rightMotor.fullStop();
+    delayFlag = true;
+  }
+  if (delayFlag) {
+    delay(100);
+  }
 
-  leftMotor.velocity(speed);
-  rightMotor.velocity(speed);
-  leftMotor.direction(Motor::BACKWARD);
-  rightMotor.direction(Motor::FORWARD);
+  // Move motors in opposite directions to spin in place
+  leftMotor.moveBackward(speed);
+  rightMotor.moveForward(speed);
 }
 
-void MotorController::turnRightWithObstacleDistance(int distance, int minDistance, int maxDistance) {
-  int adjustedVelocity = constrain(map(distance, minDistance, maxDistance, minVelocity, maxVelocity), minVelocity, maxVelocity);
-  dynamicTurn(maxVelocity, adjustedVelocity);
+void MotorController::adjustSpeedsBasedOnObstacleDistances(int leftDistance, int rightDistance, int minDistance, int maxDistance) {
+  int leftSpeed = MAX_SPEED;
+  int rightSpeed = MAX_SPEED;
+
+  // Cálculo de la diferencia de distancia y normalización
+  int distanceDifference = rightDistance - leftDistance;
+  float normalizedDifference = float(distanceDifference) / float(maxDistance - minDistance);
+  normalizedDifference = constrain(normalizedDifference, -1.0, 1.0);
+
+  // Aplicar la función de escalado
+  float scalingFactor = 0.0;
+  switch (adjustmentMethod) {
+    case LINEAR_DIFFERENCE:
+      scalingFactor = linearScaling(normalizedDifference);
+      break;
+    case QUADRATIC_DIFFERENCE:
+      scalingFactor = quadraticScaling(normalizedDifference);
+      break;
+    case EXPONENTIAL_DIFFERENCE:
+      scalingFactor = exponentialScaling(normalizedDifference);
+      break;
+    case SIGMOID_DIFFERENCE:
+      scalingFactor = sigmoidScaling(normalizedDifference);
+      break;
+    default:
+      scalingFactor = linearScaling(normalizedDifference);
+      break;
+  }
+  
+  int baseSpeed = (MAX_SPEED + MIN_SPEED) / 2;
+  int maxDifferential = (MAX_SPEED - MIN_SPEED) / 2;
+  int differentialSpeed = scalingFactor * maxDifferential;
+
+  leftSpeed = baseSpeed - differentialSpeed;
+  rightSpeed = baseSpeed + differentialSpeed;
+
+  Serial.print("Left Distance: "); Serial.print(leftDistance);
+  Serial.print(" | Right Distance: "); Serial.print(rightDistance);
+  Serial.print(" | Left Speed: "); Serial.print(leftSpeed);
+  Serial.print(" | Right Speed: "); Serial.println(rightSpeed);
+
+  dynamicTurn(leftSpeed, rightSpeed);
+}
+void MotorController::safeDirectionChangeFrom(Motor::State fromState){
+  bool delayFlag = false;
+  if(leftMotor.getState() == fromState){
+    leftMotor.fullStop();
+    delayFlag = true;
+  }
+  if(rightMotor.getState() == fromState){
+    rightMotor.fullStop();
+    delayFlag = true;
+  }
+  if (delayFlag) {
+    delay(100);
+  }
 }
 
-void MotorController::turnLeftWithObstacleDistance(int distance, int minDistance, int maxDistance) {
-  int adjustedVelocity = constrain(map(distance, minDistance, maxDistance, minVelocity, maxVelocity), minVelocity, maxVelocity);
-  dynamicTurn(adjustedVelocity, maxVelocity);
+// void MotorController::turnRightWithObstacleDistance(int distance, int minDistance, int maxDistance) {
+//   int rightSpeed = map(distance, minDistance, maxDistance, 0, 100);
+//   int leftSpeed = map(distance, minDistance, maxDistance, 150, 255);
+
+//     // Hacemos el cambio más brusco aplicando una transformación cuadrática
+//   //adjustedVelocity = constrain((baseVelocity - minVelocity) * (baseVelocity - minVelocity) / (maxVelocity - minVelocity) + minVelocity, minVelocity, maxVelocity);
+  
+//   dynamicTurn(leftSpeed, rightSpeed);
+// }
+
+// void MotorController::turnLeftWithObstacleDistance(int distance, int minDistance, int maxDistance) {
+//   // int adjustedVelocity = map(distance, minDistance, maxDistance, minVelocity, maxVelocity);
+//   int rightSpeed = map(distance, minDistance, maxDistance, 150, 255);
+//   int leftSpeed = map(distance, minDistance, maxDistance, 0, 100);
+
+//   dynamicTurn(leftSpeed, rightSpeed);
+// }
+
+/*************************
+ **  Ajustment methods  **
+ *************************/
+float MotorController::linearScaling(float value) {
+    return value;
 }
 
-void MotorController::setCalibration(float leftCal, float rightCal) {
-  leftMotorCalibration = leftCal;
-  rightMotorCalibration = rightCal;
+float MotorController::quadraticScaling(float value) {
+    float scalingFactor = value * value;
+    return (value < 0) ? -scalingFactor : scalingFactor;
 }
 
-int MotorController::checkSpeed(int speed){
-  return constrain(speed, minVelocity, maxVelocity);
+float MotorController::exponentialScaling(float value) {
+    float scalingFactor = pow(abs(value), 3);
+    return (value < 0) ? -scalingFactor : scalingFactor;
+}
+
+float MotorController::sigmoidScaling(float value) {
+    return tanh(3.0 * value); // Ajusta el multiplicador según sea necesario
 }
