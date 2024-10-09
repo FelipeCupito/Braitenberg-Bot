@@ -8,20 +8,25 @@ class Motor {
     enum Mode { INVERTED = 0, NORMAL = 1 };
     enum State { STOP = 0, FORWARD = 1, BACKWARD = 2 };
 
-    Motor(int pinENA, int pinIN1, int pinIN2, Mode mode);
+    Motor(int pinENA, int pinIN1, int pinIN2, Mode mode, float calibrationFactor = 1.0f);
     void setup();
-    void velocity(int speed);
-    void direction(State state);
+    bool isMoving();
+    State getState();
+    int getSpeed();
+
+    // Movement
+    void setVelocity(int speed);
+    void setDirection(State state);
+    void moveForward(int speed);
+    void moveBackward(int speed);
+    void fullStop();
 
   private:
     int EN, IN1, IN2;
     Mode mode;
     State state;
     int speed;
-
-    void moveForward(int speed);
-    void moveBackward(int speed);
-    void fullStop();
+    float calibrationFactor;
 };
 
 #endif
