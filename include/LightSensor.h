@@ -9,9 +9,8 @@ class LightSensor {
     enum SensorPosition {
         FRONT_LEFT,
         FRONT_RIGHT,
-        LEFT,
-        RIGHT,
-        REAR,
+        //LEFT,
+        //RIGHT,
         NONE,
         NUM_SENSORS = NONE // Represents the total number of sensors
     };
@@ -25,6 +24,7 @@ class LightSensor {
     int getLightIntensity(SensorPosition position);  // Returns the intensity of light for a specific sensor
     SensorPosition getStrongestLightSensor(); // Returns the strongest light direction based on current readings
     void calibrate();                   // Calibrates the sensors based on ambient light
+    int getGlobalBaselineValue();       // Returns the global baseline value for ambient light
 
   private:
     // Private attributes

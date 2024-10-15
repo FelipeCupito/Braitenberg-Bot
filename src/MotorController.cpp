@@ -87,11 +87,11 @@ void MotorController::spinInPlaceLeft(int speed) {
 }
 
 void MotorController::adjustSpeedsToApproach(int leftValue, int rightValue, int minValue, int maxValue, AdjustmentMethod method) {
-  adjustSpeeds(leftValue, rightValue, minValue, maxValue, method, true);
+  adjustSpeeds(leftValue, rightValue, minValue, maxValue, method, false);
 }
 
 void MotorController::adjustSpeedsToAvoid(int leftValue, int rightValue, int minValue, int maxValue, AdjustmentMethod method) {
-  adjustSpeeds(leftValue, rightValue, minValue, maxValue, method, false);
+  adjustSpeeds(leftValue, rightValue, minValue, maxValue, method, true);
 }
 
 void MotorController::safeDirectionChangeFrom(Motor::State fromState){
@@ -177,5 +177,16 @@ float MotorController::exponentialScaling(float value) {
 }
 
 float MotorController::sigmoidScaling(float value) {
-    return tanh(3.0 * value); // Ajusta el multiplicador según sea necesario
+    return tanh(4.0 * value); // cuantos mas grande el numero, mas rapido se acerca a 1
 }
+
+/*
+Ranking de las funciones por eficiencia (de más rápida a más costosa):
+ - Linear Scaling (más rápida)
+ - Quadratic Scaling (eficiente, multiplicación)
+ - Cubic Root Scaling (ligeramente más costosa)
+ - Exponential Scaling (eficiente si se usan multiplicaciones en lugar de pow)
+ - Inverse Tangent Scaling (costosa)
+ - Logarithmic Scaling (costosa)
+ - Sigmoid Scaling (más costosa)
+*/

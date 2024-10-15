@@ -14,7 +14,7 @@
 #define MOTOR_PIN_ENB 5 // Blanco
 
 // Calibración de motores
-#define MOTOR_CALIBRATION_LEFT 0.8
+#define MOTOR_CALIBRATION_LEFT 0.9
 #define MOTOR_CALIBRATION_RIGHT 1.0
 
 // Ultrasonico
@@ -24,11 +24,10 @@
 
 // Light Sensors (Analog Pins)
 const int LIGHT_SENSOR_PINS[LightSensor::NUM_SENSORS] = {
-    A2, // FRONT_LEFT
-    A3, // FRONT_RIGHT
-    A4, // LEFT
-    A5, // RIGHT
-    A6  // REAR
+    A2, // FRONT_LEFT // naranja
+    A3, // FRONT_RIGHT // rojo
+    //A4, // LEFT        // azul
+    //A5, // RIGHT       // blanco
 };
 #define MAX_LIGHT_INTENSITY 1023
 #define MIN_LIGHT_INTENSITY 0
@@ -52,12 +51,18 @@ MotorController motorController(motorLeft, motorRight);
 Sonar sonar(ULTRA_SENSOR_RIGHT, ULTRA_SENSOR_LEFT, MAX_DISTANCE);
 LightSensor lightSensor(LIGHT_SENSOR_PINS);
 
+int maxIntensity = 0;
+
 void setup() {
   Serial.begin(9600);
   
   motorController.setup();
   sonar.setup();
   lightSensor.setup();
+
+  maxIntensity = MAX_LIGHT_INTENSITY - lightSensor.getGlobalBaselineValue();
+  Serial.print("==========================================Max intensity: ");
+  Serial.println(maxIntensity);
 }
 
 void loop() {
@@ -72,6 +77,9 @@ void loop() {
   int rightIntensity = lightSensor.getLightIntensity(LightSensor::FRONT_RIGHT);
 
   //TODO: aca se poria reducir la velocidad a medida que se acerca o se aleja de una medicion
+    // Serial.println("No hay obstáculo, avanzando");
+  
+  
 
   // Comportamiento
   if (distance > 0 && distance <= CRITICAL_DISTANCE) {
@@ -100,10 +108,11 @@ void loop() {
   //   // }
   // } 
   else {
-    Serial.println("No hay obstáculo, avanzando");
+    // Serial.println("No hay obstáculo, avanzando");
     motorController.adjustSpeedsToApproach(
       leftIntensity, rightIntensity, 
-      MIN_LIGHT_INTENSITY, MAX_LIGHT_INTENSITY,
-      MotorController::SIGMOID_DIFFERENCE);
-    }   
+      MIN_LIGHT_INTENSITY, maxIntensity, // En realidad no porque tendria que usar el globalBaselineValue como minimo.
+      MotorController::SIGMOID_DIFFERENCE
+      );
+  }   
 }
