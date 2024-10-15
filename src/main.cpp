@@ -33,7 +33,7 @@ const int LIGHT_SENSOR_PINS[LightSensor::NUM_SENSORS] = {
 #define MIN_LIGHT_INTENSITY 0
 
 // Distancia
-#define CRITICAL_DISTANCE 20
+#define CRITICAL_DISTANCE 15
 #define AVOID_DISTANCE 60     
 
 // Velocidades
@@ -61,8 +61,6 @@ void setup() {
   lightSensor.setup();
 
   maxIntensity = MAX_LIGHT_INTENSITY - lightSensor.getGlobalBaselineValue();
-  Serial.print("==========================================Max intensity: ");
-  Serial.println(maxIntensity);
 }
 
 void loop() {

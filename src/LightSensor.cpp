@@ -48,7 +48,7 @@ void LightSensor::calibrate() {
     }
 
     globalBaselineValue = totalSum / (calibrationSamples * NUM_SENSORS);
-    globalBaselineValue = globalBaselineValue/2;
+    globalBaselineValue = globalBaselineValue;
     
     Serial.print("Calibración completada. Valor base global: ");
     Serial.println(globalBaselineValue);
@@ -56,9 +56,11 @@ void LightSensor::calibrate() {
 
 // Updates sensor readings, applies calibration, and decides the current direction
 void LightSensor::update() {
+
+    //
     readSensors();
     applyCalibration();
-    decideDirection();
+    //decideDirection();
     
     Serial.print("Left: ");
     Serial.print(sensorValues[FRONT_LEFT]);
@@ -92,72 +94,72 @@ void LightSensor::applyCalibration() {
 
 // Determines the direction based on the highest intensity detected among sensors
 void LightSensor::decideDirection() {
-    // // Leer los valores actuales de los sensores
-    // int frontLeftIntensity = (int)sensorValues[FRONT_LEFT];
-    // int frontRightIntensity = (int)sensorValues[FRONT_RIGHT];
-    // //int leftIntensity = (int)sensorValues[LEFT];
-    // //int rightIntensity = (int)sensorValues[RIGHT];
-    // //int rearIntensity = (int)sensorValues[REAR];
+    // Leer los valores actuales de los sensores
+    int frontLeftIntensity = (int)sensorValues[FRONT_LEFT];
+    int frontRightIntensity = (int)sensorValues[FRONT_RIGHT];
+    //int leftIntensity = (int)sensorValues[LEFT];
+    //int rightIntensity = (int)sensorValues[RIGHT];
+    //int rearIntensity = (int)sensorValues[REAR];
 
-    // // Calcular la intensidad promedio de los sensores delanteros
-    // int frontAverageIntensity = (frontLeftIntensity + frontRightIntensity) / 2;
+    // Calcular la intensidad promedio de los sensores delanteros
+    int frontAverageIntensity = (frontLeftIntensity + frontRightIntensity) / 2;
 
-    // // Por defecto, se considera la luz más fuerte al frente
-    // int maxIntensity = frontAverageIntensity;
-    // SensorPosition maxPosition = NONE;
+    // Por defecto, se considera la luz más fuerte al frente
+    int maxIntensity = frontAverageIntensity;
+    SensorPosition maxPosition = NONE;
 
-    // // Umbrales ajustados para filtrar lecturas erróneas y asegurar un seguimiento a luz intensa
-    // const int absoluteIntensityThreshold = 300;  // Luz intensa como una linterna
-    // const int relativeIntensityThreshold = 100;  // Diferencia significativa respecto al frente
-    // const unsigned long persistenceTime = 500;   // Tiempo de persistencia para confirmar un cambio
+    // Umbrales ajustados para filtrar lecturas erróneas y asegurar un seguimiento a luz intensa
+    const int absoluteIntensityThreshold = 300;  // Luz intensa como una linterna
+    const int relativeIntensityThreshold = 100;  // Diferencia significativa respecto al frente
+    const unsigned long persistenceTime = 500;   // Tiempo de persistencia para confirmar un cambio
 
-    // // Estructura para verificar los sensores laterales y trasero
-    // struct SensorData {
-    //     SensorPosition position;
-    //     int intensity;
-    // } otherSensors[] = {
-    //     //{LEFT, leftIntensity},
-    //     //{RIGHT, rightIntensity},
-    //     //{REAR, rearIntensity}
-    // };
+    // Estructura para verificar los sensores laterales y trasero
+    struct SensorData {
+        SensorPosition position;
+        int intensity;
+    } otherSensors[] = {
+        //{LEFT, leftIntensity},
+        //{RIGHT, rightIntensity},
+        //{REAR, rearIntensity}
+    };
 
-    // // Verificar si alguno de los sensores laterales o trasero detecta una luz más fuerte que la del frente
-    // for (int i = 0; i < 3; i++) {
-    //     int intensityDifference = otherSensors[i].intensity - frontAverageIntensity;
+    // Verificar si alguno de los sensores laterales o trasero detecta una luz más fuerte que la del frente
+    for (int i = 0; i < 3; i++) {
+        int intensityDifference = otherSensors[i].intensity - frontAverageIntensity;
 
-    //     // La luz detectada por este sensor debe ser significativamente más fuerte que la del frente
-    //     if (otherSensors[i].intensity >= absoluteIntensityThreshold && intensityDifference >= relativeIntensityThreshold) {
-    //         if (otherSensors[i].intensity > maxIntensity) {
-    //             maxIntensity = otherSensors[i].intensity;
-    //             maxPosition = otherSensors[i].position;
-    //         }
-    //     }
-    // }
+        // La luz detectada por este sensor debe ser significativamente más fuerte que la del frente
+        if (otherSensors[i].intensity >= absoluteIntensityThreshold && intensityDifference >= relativeIntensityThreshold) {
+            if (otherSensors[i].intensity > maxIntensity) {
+                maxIntensity = otherSensors[i].intensity;
+                maxPosition = otherSensors[i].position;
+            }
+        }
+    }
 
-    // // Si la nueva dirección es la frontal, cambia inmediatamente sin esperar el tiempo de persistencia
-    // if (maxPosition == NONE) {
-    //     // Detectamos que el frente tiene la luz más fuerte, cambiar de inmediato
-    //     if (lastDirection != NONE) {
-    //         lastDirection = NONE;  // Restablecer la dirección al frente
-    //         directionChangeStartTime = 0;  // Resetear el temporizador porque estamos en dirección al frente
-    //         Serial.println("Cambio directo hacia el frente.");
-    //     }
-    //     return;  // No continuar, ya que no hay necesidad de persistencia
-    // }
+    // Si la nueva dirección es la frontal, cambia inmediatamente sin esperar el tiempo de persistencia
+    if (maxPosition == NONE) {
+        // Detectamos que el frente tiene la luz más fuerte, cambiar de inmediato
+        if (lastDirection != NONE) {
+            lastDirection = NONE;  // Restablecer la dirección al frente
+            directionChangeStartTime = 0;  // Resetear el temporizador porque estamos en dirección al frente
+            Serial.println("Cambio directo hacia el frente.");
+        }
+        return;  // No continuar, ya que no hay necesidad de persistencia
+    }
 
-    // unsigned long currentTime = millis();
+    unsigned long currentTime = millis();
 
-    // // Verificar si la dirección ha cambiado
-    // if (maxPosition != lastDirection) {
-    //     // Posible cambio de dirección, iniciar temporizador
-    //    if (currentTime - directionChangeStartTime >= persistenceTime) {
-    //         // La nueva dirección ha persistido el tiempo suficiente para considerarla válida
-    //         lastDirection = maxPosition;  // Cambiar la dirección
-    //         directionChangeStartTime = currentTime;  // Actualizar el tiempo de cambio
-    //         Serial.print("Cambio de dirección confirmado a: ");
-    //         Serial.println(maxPosition);
-    //     }
-    // }
+    // Verificar si la dirección ha cambiado
+    if (maxPosition != lastDirection) {
+        // Posible cambio de dirección, iniciar temporizador
+       if (currentTime - directionChangeStartTime >= persistenceTime) {
+            // La nueva dirección ha persistido el tiempo suficiente para considerarla válida
+            lastDirection = maxPosition;  // Cambiar la dirección
+            directionChangeStartTime = currentTime;  // Actualizar el tiempo de cambio
+            Serial.print("Cambio de dirección confirmado a: ");
+            Serial.println(maxPosition);
+        }
+    }
 }
 
 
