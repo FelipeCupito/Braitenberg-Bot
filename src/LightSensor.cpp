@@ -21,7 +21,7 @@ int LightSensor::getGlobalBaselineValue(){
 
 // Sets up the sensor pins as input and performs calibration
 void LightSensor::setup() {
-    Serial.println("Iniciando configuracion de LightSensor");
+    //Serial.println("Iniciando configuracion de LightSensor");
     for (int i = 0; i < NUM_SENSORS; i++) {
         pinMode(sensorPins[i], INPUT);
     }
@@ -33,7 +33,7 @@ void LightSensor::calibrate() {
     const int calibrationSamples = CALIBRATION_SAMPLES;
     unsigned long totalSum = 0;
 
-    Serial.println("Iniciando calibración de sensores...");
+    // Serial.println("Iniciando calibración de sensores...");
 
     for (int i = 0; i < calibrationSamples; i++) {
         readSensors();
@@ -41,17 +41,17 @@ void LightSensor::calibrate() {
             totalSum += sensorValues[j];
         }
         delay(10);
-        Serial.print("Right: ");
-        Serial.print(sensorValues[FRONT_RIGHT]);
-        Serial.print("         LEft : ");
-        Serial.println(sensorValues[FRONT_LEFT]);
+        // Serial.print("Right: ");
+        // Serial.print(sensorValues[FRONT_RIGHT]);
+        // Serial.print("         LEft : ");
+        // Serial.println(sensorValues[FRONT_LEFT]);
     }
 
     globalBaselineValue = totalSum / (calibrationSamples * NUM_SENSORS);
     globalBaselineValue = globalBaselineValue;
     
-    Serial.print("Calibración completada. Valor base global: ");
-    Serial.println(globalBaselineValue);
+    // Serial.print("Calibración completada. Valor base global: ");
+    // Serial.println(globalBaselineValue);
 }
 
 // Updates sensor readings, applies calibration, and decides the current direction
@@ -62,10 +62,10 @@ void LightSensor::update() {
     applyCalibration();
     //decideDirection();
     
-    Serial.print("Left: ");
-    Serial.print(sensorValues[FRONT_LEFT]);
-    Serial.print("          Right: ");
-    Serial.println(sensorValues[FRONT_RIGHT]);
+    // Serial.print("Left: ");
+    // Serial.print(sensorValues[FRONT_LEFT]);
+    // Serial.print("          Right: ");
+    // Serial.println(sensorValues[FRONT_RIGHT]);
 }
 
  int LightSensor::getLightIntensity(SensorPosition position){
@@ -142,7 +142,7 @@ void LightSensor::decideDirection() {
         if (lastDirection != NONE) {
             lastDirection = NONE;  // Restablecer la dirección al frente
             directionChangeStartTime = 0;  // Resetear el temporizador porque estamos en dirección al frente
-            Serial.println("Cambio directo hacia el frente.");
+            // Serial.println("Cambio directo hacia el frente.");
         }
         return;  // No continuar, ya que no hay necesidad de persistencia
     }
@@ -156,8 +156,8 @@ void LightSensor::decideDirection() {
             // La nueva dirección ha persistido el tiempo suficiente para considerarla válida
             lastDirection = maxPosition;  // Cambiar la dirección
             directionChangeStartTime = currentTime;  // Actualizar el tiempo de cambio
-            Serial.print("Cambio de dirección confirmado a: ");
-            Serial.println(maxPosition);
+            // Serial.print("Cambio de dirección confirmado a: ");
+            // Serial.println(maxPosition);
         }
     }
 }

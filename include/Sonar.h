@@ -20,6 +20,7 @@ class Sonar {
     int getLeftDistance();
     bool isObstacleClose();
     int getDistance();
+    int getProcessDistance();
     CloserSide getCloserSide();
 
   private:

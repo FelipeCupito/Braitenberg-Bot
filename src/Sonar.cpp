@@ -43,6 +43,11 @@ int Sonar::getDistance() {
   return rightDistance < leftDistance ? rightDistance : leftDistance;
 }
 
+//funcion que devulva el proceso de la distancia
+int Sonar::getProcessDistance() {
+  return  (rightDistance + leftDistance) / 2;
+}
+
 Sonar::CloserSide Sonar::getCloserSide() {
   if (rightDistance < leftDistance) {
     return RIGHT;

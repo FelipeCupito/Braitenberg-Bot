@@ -4,19 +4,23 @@
 #include "Motor.h"
 #include <math.h>
 
-
 class MotorController {
   public:
     enum AdjustmentMethod {
-      LINEAR_DIFFERENCE,        // Ajuste simple y proporcional. Bueno para respuestas lineales.
-      QUADRATIC_DIFFERENCE,     // Ajuste más agresivo, aplicando una curva cuadrática para reacciones rápidas.
-      EXPONENTIAL_DIFFERENCE,   // El ajuste más agresivo, útil para respuestas críticas
-      SIGMOID_DIFFERENCE,       // Ajuste controlado y suave, ideal para evitar movimientos bruscos.  
+      LINEAR_DIFFERENCE,
+      QUADRATIC_DIFFERENCE,
+      EXPONENTIAL_DIFFERENCE,
+      SIGMOID_DIFFERENCE,
     };
 
     MotorController(Motor& leftMotor, Motor& rightMotor);
+
     // Configuration
     void setup();
+    void setMaxSpeed(int maxSpeed);
+    void setMinSpeed(int minSpeed);
+    int getMaxSpeed() const;
+    int getMinSpeed() const;
 
     // Movement
     void moveForward(int speed);
@@ -28,10 +32,11 @@ class MotorController {
     void adjustSpeedsToApproach(int leftValue, int rightValue, int minValue, int maxValue, AdjustmentMethod method = LINEAR_DIFFERENCE);
     void adjustSpeedsToAvoid(int leftValue, int rightValue, int minValue, int maxValue, AdjustmentMethod method= LINEAR_DIFFERENCE);
 
-
   private:
     Motor& leftMotor;
     Motor& rightMotor;
+    int maxSpeed;
+    int minSpeed;
 
     // Funciones privadas para cada método de ajuste
     float linearScaling(float value);
@@ -45,36 +50,3 @@ class MotorController {
 };
 
 #endif
-
-
-/*
-void MotorController::combinedMapping(int leftDistance, int rightDistance, int minDistance, int maxDistance, int& leftSpeed, int& rightSpeed) {
-    int minDetectedDistance = min(leftDistance, rightDistance);
-
-    // Calcular factor basado en la distancia mínima
-    float distanceFactor = float(minDetectedDistance - minDistance) / float(maxDistance - minDistance);
-    distanceFactor = constrain(distanceFactor, 0.0, 1.0);
-
-    // Calcular factor basado en la diferencia de distancias
-    int distanceDifference = rightDistance - leftDistance;
-    float differenceFactor = float(distanceDifference) / float(maxDistance - minDistance);
-    differenceFactor = constrain(differenceFactor, -1.0, 1.0);
-
-    // Combinar factores (puedes ajustar los pesos)
-    float combinedFactor = (0.7 * distanceFactor) + (0.3 * differenceFactor);
-
-    int speedRange = maxVelocity - minVelocity;
-    int adjustedSpeed = minVelocity + combinedFactor * speedRange;
-
-    // Ajustar velocidades de los motores
-    leftSpeed = adjustedSpeed;
-    rightSpeed = adjustedSpeed;
-
-    // Puedes añadir ajustes adicionales basados en la diferencia
-    leftSpeed -= differenceFactor * speedRange / 2;
-    rightSpeed += differenceFactor * speedRange / 2;
-
-    leftSpeed = constrain(leftSpeed, minVelocity, maxVelocity);
-    rightSpeed = constrain(rightSpeed, minVelocity, maxVelocity);
-}
- */

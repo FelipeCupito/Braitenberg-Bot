@@ -1,13 +1,27 @@
 #include "MotorController.h"
 
-#define MAX_SPEED 255
-#define MIN_SPEED 0
-
-MotorController::MotorController(Motor& leftMotor, Motor& rightMotor): leftMotor(leftMotor), rightMotor(rightMotor) {}
+MotorController::MotorController(Motor& leftMotor, Motor& rightMotor)
+    : leftMotor(leftMotor), rightMotor(rightMotor), maxSpeed(255), minSpeed(0) {}
 
 void MotorController::setup() {
   leftMotor.setup();
   rightMotor.setup();
+}
+
+void MotorController::setMaxSpeed(int maxSpeed) {
+  this->maxSpeed = constrain(maxSpeed, 0, 255);
+}
+
+void MotorController::setMinSpeed(int minSpeed) {
+  this->minSpeed = constrain(minSpeed, 0, 255);
+}
+
+int MotorController::getMaxSpeed() const {
+  return maxSpeed;
+}
+
+int MotorController::getMinSpeed() const {
+  return minSpeed;
 }
 
 /**********************
@@ -15,19 +29,17 @@ void MotorController::setup() {
  **********************/ 
 
 void MotorController::moveForward(int speed) {
-  // If any motor is moving backwards, stop it before moving forward
   safeDirectionChangeFrom(Motor::BACKWARD);
 
-  // Now we can safely change the direction to move forward
+  speed = constrain(speed, minSpeed, maxSpeed);
   leftMotor.moveForward(speed);
   rightMotor.moveForward(speed);
 }
 
 void MotorController::moveBackward(int speed) {
-  // If any motor is moving forward, stop it before moving backward
   safeDirectionChangeFrom(Motor::FORWARD);
 
-  // Now we can safely change the direction to move backward
+  speed = constrain(speed, minSpeed, maxSpeed);
   leftMotor.moveBackward(speed);
   rightMotor.moveBackward(speed);
 }
@@ -38,50 +50,25 @@ void MotorController::stop() {
 }
 
 void MotorController::dynamicTurn(int leftSpeed, int rightSpeed) {
-  // If any motor is moving backwards, stop it before moving forward
   safeDirectionChangeFrom(Motor::BACKWARD);
 
-  // Now we can safely change the direction to move forward
-  rightMotor.moveForward(rightSpeed);
+  leftSpeed = constrain(leftSpeed, minSpeed, maxSpeed);
+  rightSpeed = constrain(rightSpeed, minSpeed, maxSpeed);
+
   leftMotor.moveForward(leftSpeed);
+  rightMotor.moveForward(rightSpeed);
 }
 
 void MotorController::spinInPlaceRight(int speed) {
-  // If any motor is moving in the opposite direction, stop it before moving in the correct direction
-  bool delayFlag = false;
-  if(leftMotor.getState() == Motor::BACKWARD){
-    leftMotor.fullStop();
-    delayFlag = true;
-  }
-  if(rightMotor.getState() == Motor::FORWARD){
-    rightMotor.fullStop();
-    delayFlag = true;
-  }
-  if (delayFlag) {
-    delay(100);
-  }
+  speed = constrain(speed, minSpeed, maxSpeed);
 
-  // Move motors in opposite directions to spin in place
   leftMotor.moveForward(speed);
   rightMotor.moveBackward(speed);
 }
 
 void MotorController::spinInPlaceLeft(int speed) {
-  // If any motor is moving in the opposite direction, stop it before moving in the correct direction
-  bool delayFlag = false;
-  if(leftMotor.getState() == Motor::FORWARD){
-    leftMotor.fullStop();
-    delayFlag = true;
-  }
-  if(rightMotor.getState() == Motor::BACKWARD){
-    rightMotor.fullStop();
-    delayFlag = true;
-  }
-  if (delayFlag) {
-    delay(100);
-  }
+  speed = constrain(speed, minSpeed, maxSpeed);
 
-  // Move motors in opposite directions to spin in place
   leftMotor.moveBackward(speed);
   rightMotor.moveForward(speed);
 }
@@ -110,15 +97,15 @@ void MotorController::safeDirectionChangeFrom(Motor::State fromState){
 }
 
 void MotorController::adjustSpeeds(int leftValue, int rightValue, int minValue, int maxValue, AdjustmentMethod method, bool isApproaching) {
-  int leftSpeed = MAX_SPEED;
-  int rightSpeed = MAX_SPEED;
+  int leftSpeed = maxSpeed;
+  int rightSpeed = maxSpeed;
 
-  // Calculate difference and normalize
+  // Calcular diferencia y normalizar
   int valueDifference = rightValue - leftValue;
   float normalizedDifference = float(valueDifference) / float(maxValue - minValue);
   normalizedDifference = constrain(normalizedDifference, -1.0, 1.0);
 
-  // Apply scaling function
+  // Aplicar función de escalado
   float scalingFactor = 0.0;
   switch (method) {
     case LINEAR_DIFFERENCE:
@@ -138,23 +125,23 @@ void MotorController::adjustSpeeds(int leftValue, int rightValue, int minValue, 
       break;
   }
 
-  int baseSpeed = (MAX_SPEED + MIN_SPEED) / 2;
-  int maxDifferential = (MAX_SPEED - MIN_SPEED) / 2;
+  int baseSpeed = (maxSpeed + minSpeed) / 2;
+  int maxDifferential = (maxSpeed - minSpeed) / 2;
   int differentialSpeed = scalingFactor * maxDifferential;
 
   if (isApproaching) {
-    // Move towards the higher value
+    // Moverse hacia el valor más alto
     leftSpeed = baseSpeed - differentialSpeed;
     rightSpeed = baseSpeed + differentialSpeed;
   } else {
-    // Move away from the higher value
+    // Alejarse del valor más alto
     leftSpeed = baseSpeed + differentialSpeed;
     rightSpeed = baseSpeed - differentialSpeed;
   }
 
-  // Constrain speeds to valid range
-  leftSpeed = constrain(leftSpeed, MIN_SPEED, MAX_SPEED);
-  rightSpeed = constrain(rightSpeed, MIN_SPEED, MAX_SPEED);
+  // Limitar velocidades al rango válido
+  leftSpeed = constrain(leftSpeed, minSpeed, maxSpeed);
+  rightSpeed = constrain(rightSpeed, minSpeed, maxSpeed);
 
   dynamicTurn(leftSpeed, rightSpeed);
 }
@@ -162,31 +149,22 @@ void MotorController::adjustSpeeds(int leftValue, int rightValue, int minValue, 
 /*************************
  **  Ajustment methods  **
  *************************/
+
 float MotorController::linearScaling(float value) {
-    return value;
+  return value;
 }
 
 float MotorController::quadraticScaling(float value) {
-    float scalingFactor = value * value;
-    return (value < 0) ? -scalingFactor : scalingFactor;
+  float scalingFactor = value * value;
+  return (value < 0) ? -scalingFactor : scalingFactor;
 }
 
 float MotorController::exponentialScaling(float value) {
-    float scalingFactor = pow(abs(value), 3);
-    return (value < 0) ? -scalingFactor : scalingFactor;
+  float scalingFactor = pow(abs(value), 3);
+  return (value < 0) ? -scalingFactor : scalingFactor;
 }
 
 float MotorController::sigmoidScaling(float value) {
-    return tanh(4.0 * value); // cuantos mas grande el numero, mas rapido se acerca a 1
+  //return tanh(4.0 * value);
+  return tanh(8.0 * value);
 }
-
-/*
-Ranking de las funciones por eficiencia (de más rápida a más costosa):
- - Linear Scaling (más rápida)
- - Quadratic Scaling (eficiente, multiplicación)
- - Cubic Root Scaling (ligeramente más costosa)
- - Exponential Scaling (eficiente si se usan multiplicaciones en lugar de pow)
- - Inverse Tangent Scaling (costosa)
- - Logarithmic Scaling (costosa)
- - Sigmoid Scaling (más costosa)
-*/
